@@ -27,3 +27,9 @@ notebooks/*.ipynb
 
 # Reports (generated on training)
 reports/*.png
+
+# Allow specific files for deployment
+!models/*.pkl.lzma
+!/data/
+!/data/processed/
+!/data/processed/solar_final.csv

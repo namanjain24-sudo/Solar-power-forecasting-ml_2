@@ -185,7 +185,9 @@ st.markdown(
 # ══════════════════════════════════════
 @st.cache_resource
 def load_model():
-    return joblib.load("models/solar_model.pkl")
+    if os.path.exists("models/solar_model.pkl"):
+        return joblib.load("models/solar_model.pkl")
+    return joblib.load("models/solar_model.pkl.lzma")
 
 
 @st.cache_data
