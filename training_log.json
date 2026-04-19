@@ -1,11 +1,5 @@
 {
-  "timestamp": "2026-02-25T10:18:51.991158",
-  "model": "RandomForestRegressor",
-  "hyperparameters": {
-    "n_estimators": 100,
-    "random_state": 42,
-    "n_jobs": -1
-  },
+  "timestamp": "2026-04-19T01:51:17.239569",
   "features": [
     "SOURCE_KEY",
     "AMBIENT_TEMPERATURE",
@@ -14,27 +8,10 @@
     "hour",
     "month"
   ],
-  "target": "DC_POWER",
-  "dataset": {
-    "total_rows": 77098,
-    "train_rows": 61678,
-    "test_rows": 15420,
-    "date_range": "2020-05-15 05:45:00 -> 2020-06-17 18:45:00"
-  },
-  "holdout_metrics": {
-    "MAE": 460.65,
-    "RMSE": 933.25,
-    "R2": 0.9296,
-    "MAPE": 110.65
-  },
-  "cv_metrics_k5": {
-    "MAE_mean": 744.68,
-    "MAE_std": 268.68,
-    "RMSE_mean": 1626.86,
-    "RMSE_std": 506.68,
-    "R2_mean": 0.8096,
-    "R2_std": 0.0909,
-    "MAPE_mean": 89.8,
-    "MAPE_std": 34.25
+  "metrics": {
+    "MAE": 479.65,
+    "RMSE": 955.36,
+    "R2": 0.9262,
+    "MAPE": 113.27
   }
 }

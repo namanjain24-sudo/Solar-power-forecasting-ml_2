@@ -26,10 +26,17 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import numpy as np
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-
+from src.agent.solar_agent import run_agent
+from src.rag.retriever import load_docs
 from src.preprocessing.preprocessing import encode_features, FEATURES, TARGET
 from src.evaluation.metrics import compute_mape
 from src.utils.helpers import style_plot, concept_note, C_RF, C_ACTUAL, C_ACCENT, C_GOLD
+from src.agent.alerts import generate_alert
+from src.agent.chatbot import ask_agent
+
+@st.cache_data
+def cached_alert(summary, risk):
+    return generate_alert(summary, risk)
 
 # ══════════════════════════════════════
 # PAGE CONFIG & STYLING
@@ -40,6 +47,20 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+if "rag_loaded" not in st.session_state:
+    try:
+        load_docs()
+    except Exception:
+        pass
+    st.session_state.rag_loaded = True
+
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+if "agent_output" not in st.session_state:
+    st.session_state.agent_output = {"summary": "No predictions yet. Run a forecast first.", "knowledge": ["None"]}
+
 
 st.markdown("""
 <style>
@@ -186,6 +207,50 @@ df_full = load_dataset()
 df_train = encode_features(df_full.copy())
 training_log = load_training_log()
 
+def render_agent_ui(agent_output):
+    """Pro-level UI renderer for agent output"""
+    st.session_state.agent_output = agent_output
+    st.info("🤖 Agent uses ML forecast + RAG + reasoning for decision-making")
+
+    st.subheader("📊 Forecast Summary")
+    st.write(agent_output["summary"])
+
+    st.subheader("⚠️ Risk Level")
+    if agent_output["risk"] == "High":
+        st.error("High Risk")
+    elif agent_output["risk"] == "Medium":
+        st.warning("Medium Risk")
+    else:
+        st.success("Low Risk")
+
+    st.subheader("🧠 AI Reasoning")
+    st.write(agent_output.get("reasoning", "No reasoning provided."))
+    st.caption("Confidence: Based on forecast stability and knowledge alignment")
+
+    st.subheader("📚 Retrieved Knowledge")
+    for k in agent_output["knowledge"]:
+        st.write("- " + k)
+
+    st.subheader("⚡ Recommendations")
+    recs = agent_output.get("recommendations", [])
+    if recs:
+        st.success(f"⚡ Primary Action: {recs[0]}")
+        for r in recs[1:]:
+            st.info(f"Secondary Action: {r}")
+    else:
+        st.write("No recommendations provided.")
+
+    st.subheader("🚨 Smart Alert")
+    alert_msg = cached_alert(agent_output["summary"], agent_output["risk"])
+
+    if agent_output["risk"] == "High":
+        st.error(alert_msg)
+    elif agent_output["risk"] == "Medium":
+        st.warning(alert_msg)
+    else:
+        st.info(alert_msg)
+
+
 
 # ══════════════════════════════════════
 # TIME-BASED TRAIN-TEST SPLIT
@@ -243,6 +308,7 @@ with tab1:
                                MODULE_TEMPERATURE, IRRADIATION,
                                hour, month]], columns=FEATURES)
 
+        data = data.select_dtypes(exclude=["object"])
         pred = max(0, model.predict(data)[0])
 
         st.metric("Predicted DC Power (RandomForest)", f"{pred:,.0f} W")
@@ -257,6 +323,11 @@ with tab1:
         style_plot(ax, "Predicted Solar Power Output", ylabel="Power (W)")
         plt.tight_layout()
         st.pyplot(fig)
+
+        st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+        st.subheader("🤖 AI Grid Optimization Assistant")
+        agent_output = run_agent([pred])
+        render_agent_ui(agent_output)
 
     # ── Batch Prediction ──
     st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
@@ -277,7 +348,8 @@ with tab1:
                 df_pred = df_up.copy()
                 df_pred = encode_features(df_pred)
 
-                preds_batch = np.clip(model.predict(df_pred[FEATURES]), 0, None)
+                df_pred_features = df_pred[FEATURES].select_dtypes(exclude=["object"])
+                preds_batch = np.clip(model.predict(df_pred_features), 0, None)
                 df_up["Prediction"] = preds_batch
 
                 st.success("Forecast completed successfully.")
@@ -606,6 +678,7 @@ with tab4:
                 future_irradiation, future_hour, fc_month,
             ]], columns=FEATURES)
 
+            future_input = future_input.select_dtypes(exclude=["object"])
             p = max(0, model.predict(future_input)[0])
 
             if future_hour < 6 or future_hour > 18:
@@ -647,6 +720,11 @@ with tab4:
         csv_fc = forecast_df.to_csv(index=False).encode("utf-8")
         st.download_button("Download Forecast Results", csv_fc,
                            "solar_forecast_results.csv", "text/csv")
+
+        st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+        st.subheader("🤖 AI Grid Optimization Assistant")
+        agent_output = run_agent(preds_list)
+        render_agent_ui(agent_output)
 
 
 # ══════════════════════════════════════════════════════
@@ -725,3 +803,31 @@ with tab5:
     })
 
     st.dataframe(summary.set_index("Statistic"), width="stretch")
+
+# ══════════════════════════════════════
+# FLOATING CHATBOT (SIDEBAR)
+# ══════════════════════════════════════
+st.sidebar.markdown("---")
+st.sidebar.subheader("💬 Ask AI (Grid Assistant)")
+
+user_q = st.sidebar.text_input("Ask about solar optimization:", key="chat_input")
+
+if st.sidebar.button("Ask", key="ask_btn"):
+    if user_q:
+        out = st.session_state.agent_output
+        answer = ask_agent(
+            user_q,
+            out["summary"],
+            out["knowledge"]
+        )
+
+        # Save history
+        st.session_state.chat_history.append((user_q, answer))
+
+for q, a in reversed(st.session_state.chat_history):
+    st.sidebar.markdown(f"**You:** {q}")
+    st.sidebar.success(a)
+
+if st.sidebar.button("Clear Chat"):
+    st.session_state.chat_history = []
+    st.rerun()

@@ -35,7 +35,7 @@ def encode_features(df):
         DataFrame with SOURCE_KEY encoded as integers.
     """
     print("Encoding SOURCE_KEY...")
-    if df["SOURCE_KEY"].dtype == "object" or str(df["SOURCE_KEY"].dtype) == "category":
+    if not pd.api.types.is_numeric_dtype(df["SOURCE_KEY"]):
         df["SOURCE_KEY"] = df["SOURCE_KEY"].astype("category").cat.codes
     print("Encoding done")
     return df
