@@ -3,7 +3,6 @@
 This document provides an in-depth, structured, and detailed report on the Solar Power Forecasting Machine Learning project. It is specifically designed to cover the core requirements of problem understanding, input/output specifications, system architecture, application deployment, and model performance evaluation.
 
 ---
-
 ## 1. Problem Understanding & Renewable Context
 
 ### The Global Shift to Renewable Energy
