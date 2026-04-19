@@ -8,3 +8,4 @@ joblib
 chromadb
 sentence-transformers
 groq
+protobuf<5
