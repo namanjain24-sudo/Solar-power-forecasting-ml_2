@@ -15,7 +15,9 @@
     <img src="https://img.shields.io/badge/ChromaDB-FF6F00?style=for-the-badge" alt="ChromaDB"/>
   </p>
 </div>
+## 🌐 Live Demo
 
+Click here to use the app: https://solar-power-forecasting-ml2.streamlit.app/
 ---
 
 ## ⚡ Overview
